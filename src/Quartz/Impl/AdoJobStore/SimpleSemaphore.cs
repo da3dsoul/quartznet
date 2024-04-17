@@ -23,8 +23,6 @@ using Microsoft.Extensions.Logging;
 
 using Quartz.Logging;
 
-using LogLevel = Microsoft.Extensions.Logging.LogLevel;
-
 namespace Quartz.Impl.AdoJobStore;
 
 /// <summary>
@@ -51,7 +49,7 @@ internal sealed class SimpleSemaphore : ISemaphore
     /// until it is available).
     /// </summary>
     /// <returns>True if the lock was obtained.</returns>
-    public async ValueTask<bool> ObtainLock(
+    public async ValueTask<bool> ObtainWriteLock(
         Guid requestorId,
         ConnectionAndTransactionHolder? conn,
         string lockName,
@@ -103,7 +101,7 @@ internal sealed class SimpleSemaphore : ISemaphore
     /// <summary> Release the lock on the identified resource if it is held by the calling
     /// thread.
     /// </summary>
-    public ValueTask ReleaseLock(
+    public ValueTask ReleaseWriteLock(
         Guid requestorId,
         string lockName,
         CancellationToken cancellationToken = default)
@@ -127,13 +125,23 @@ internal sealed class SimpleSemaphore : ISemaphore
         return default;
     }
 
+    public ValueTask<bool> ObtainReadLock(Guid requestorId, ConnectionAndTransactionHolder? conn, string lockName, CancellationToken cancellationToken = default)
+    {
+        return ObtainWriteLock(requestorId, conn, lockName, cancellationToken);
+    }
+
+    public ValueTask ReleaseReadLock(Guid requestorId, string lockName, CancellationToken cancellationToken = default)
+    {
+        return ReleaseWriteLock(requestorId, lockName, cancellationToken);
+    }
+
     /// <summary>
     /// Whether this Semaphore implementation requires a database connection for
     /// its lock management operations.
     /// </summary>
     /// <value></value>
-    /// <seealso cref="ObtainLock"/>
-    /// <seealso cref="ReleaseLock"/>
+    /// <seealso cref="ObtainWriteLock"/>
+    /// <seealso cref="ReleaseWriteLock"/>
     public bool RequiresConnection => false;
 
     private ResourceLock GetLock(string lockName)
@@ -161,7 +169,6 @@ internal sealed class SimpleSemaphore : ISemaphore
         {
             var temp = owner;
             return temp != null && temp.Value == requestorId;
-
         }
 
         public async ValueTask Acquire(Guid requestorId, CancellationToken cancellationToken)

@@ -25,6 +25,7 @@ using System.Collections.Specialized;
 using System.Data;
 using System.Data.Common;
 using System.Globalization;
+using System.Reflection;
 
 using Microsoft.Extensions.Logging;
 
@@ -62,12 +63,24 @@ public partial class StdAdoDelegate : StdAdoConstants, IDriverDelegate, IDbAcces
 
     private readonly ConcurrentDictionary<string, string> cachedQueries = new();
 
+    protected ISemaphore? lockHandler;
+
+    public virtual ISemaphore LockHandler
+    {
+        get
+        {
+            // this should only get called in tests
+            lockHandler ??= new SimpleSemaphore();
+            return lockHandler;
+        }
+    }
+
     protected IDbProvider DbProvider { get; private set; } = null!;
 
     /// <summary>
     /// Initializes the driver delegate.
     /// </summary>
-    public virtual void Initialize(DelegateInitializationArgs args)
+    public virtual void Initialize(IJobStore jobStore, DelegateInitializationArgs args)
     {
         logger = LogProvider.CreateLogger<StdAdoDelegate>();
         tablePrefix = args.TablePrefix;
@@ -138,6 +151,74 @@ public partial class StdAdoDelegate : StdAdoConstants, IDriverDelegate, IDbAcces
                 {
                     ThrowHelper.ThrowNoSuchDelegateException("Unknown setting: '" + name + "'");
                 }
+            }
+        }
+
+        InitLockHandler(jobStore, args);
+    }
+
+    private void InitLockHandler(IJobStore jobStore, DelegateInitializationArgs args)
+    {
+        if (jobStore is not JobStoreSupport support)
+        {
+            return;
+        }
+
+        // Install custom lock handler (Semaphore)
+        Type? lockHandlerType = support.cfg == null ? null : typeLoadHelper.LoadType(support.cfg.GetStringProperty(StdSchedulerFactory.PropertyJobStoreLockHandlerType));
+        if (lockHandlerType != null)
+        {
+            try
+            {
+                ConstructorInfo? cWithDbProvider = lockHandlerType.GetConstructor(new[] { typeof(DbProvider) });
+
+                if (cWithDbProvider != null)
+                {
+                    // takes db provider
+                    IDbProvider dbProvider = DBConnectionManager.Instance.GetDbProvider(support.DataSource);
+                    lockHandler = (ISemaphore) cWithDbProvider.Invoke(new object[] { dbProvider });
+                }
+                else
+                {
+                    lockHandler = (ISemaphore)support.InstantiateType(lockHandlerType);
+                }
+
+                NameValueCollection tProps = support.cfg!.GetPropertyGroup(StdSchedulerFactory.PropertyJobStoreLockHandlerPrefix, true);
+
+                // If this lock handler requires the table prefix, add it to its properties.
+                if (lockHandler is ITablePrefixAware)
+                {
+                    tProps[StdSchedulerFactory.PropertyTablePrefix] = support.TablePrefix;
+                    tProps[StdSchedulerFactory.PropertySchedulerName] = schedName;
+                }
+
+                try
+                {
+                    ObjectUtils.SetObjectProperties(lockHandler, tProps);
+                }
+                catch (Exception e)
+                {
+                    throw new SchedulerException("JobStore LockHandler type '{0}' props could not be configured.".FormatInvariant(lockHandlerType), e);
+                }
+
+                logger.LogInformation("Using custom data access locking (synchronization): {LockHandlerType}", lockHandlerType);
+            }
+            catch (Exception e)
+            {
+                throw new SchedulerException("JobStore LockHandler type '{0}' could not be instantiated.".FormatInvariant(lockHandlerType), e);
+            }
+        }
+        else
+        {
+            if (support.Clustered || support.UseDBLocks)
+            {
+                logger.LogInformation("Using db table-based data access locking (synchronization).");
+                lockHandler = new StdRowLockSemaphore(args.TablePrefix, args.InstanceName, selectWithLockSQL: null, DbProvider);
+            }
+            else
+            {
+                logger.LogInformation("Using thread monitor-based data access locking (synchronization).");
+                lockHandler = new SimpleSemaphore();
             }
         }
     }

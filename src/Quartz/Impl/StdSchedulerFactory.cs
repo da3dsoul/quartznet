@@ -754,54 +754,10 @@ Please add configuration to your application config file to correctly initialize
 
         if (js is JobStoreSupport jobStoreSupport)
         {
-            // Install custom lock handler (Semaphore)
-            var lockHandlerType = loadHelper.LoadType(cfg.GetStringProperty(PropertyJobStoreLockHandlerType));
-            if (lockHandlerType != null)
-            {
-                try
-                {
-                    ISemaphore lockHandler;
-                    var cWithDbProvider = lockHandlerType.GetConstructor(new[] { typeof(DbProvider) });
-
-                    if (cWithDbProvider != null)
-                    {
-                        // takes db provider
-                        IDbProvider dbProvider = DBConnectionManager.Instance.GetDbProvider(jobStoreSupport.DataSource);
-                        lockHandler = (ISemaphore) cWithDbProvider.Invoke(new object[] { dbProvider });
-                    }
-                    else
-                    {
-                        lockHandler = InstantiateType<ISemaphore>(lockHandlerType);
-                    }
-
-                    tProps = cfg.GetPropertyGroup(PropertyJobStoreLockHandlerPrefix, true);
-
-                    // If this lock handler requires the table prefix, add it to its properties.
-                    if (lockHandler is ITablePrefixAware)
-                    {
-                        tProps[PropertyTablePrefix] = jobStoreSupport.TablePrefix;
-                        tProps[PropertySchedulerName] = schedName;
-                    }
-
-                    try
-                    {
-                        ObjectUtils.SetObjectProperties(lockHandler, tProps);
-                    }
-                    catch (Exception e)
-                    {
-                        initException = new SchedulerException("JobStore LockHandler type '{0}' props could not be configured.".FormatInvariant(lockHandlerType), e);
-                        throw initException;
-                    }
-
-                    jobStoreSupport.LockHandler = lockHandler;
-                    logger.LogInformation("Using custom data access locking (synchronization): {LockHandlerType}", lockHandlerType);
-                }
-                catch (Exception e)
-                {
-                    initException = new SchedulerException("JobStore LockHandler type '{0}' could not be instantiated.".FormatInvariant(lockHandlerType), e);
-                    throw initException;
-                }
-            }
+            // This will allow Delegates to create the LockHandler from config while reducing interdependency
+            // Making a reference to InstantiateType is needed to allow the Dependency Injection on the override
+            jobStoreSupport.cfg = cfg;
+            jobStoreSupport.InstantiateType = InstantiateType<object>;
         }
 
         // Set up any SchedulerPlugins

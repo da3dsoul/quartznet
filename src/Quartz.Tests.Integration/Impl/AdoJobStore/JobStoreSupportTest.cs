@@ -35,12 +35,17 @@ public class JobStoreSupportTest
 
     private class TestJobStoreSupport : JobStoreSupport
     {
-        protected override ValueTask<ConnectionAndTransactionHolder> GetNonManagedTXConnection()
+        protected override ValueTask<ConnectionAndTransactionHolder> GetNonManagedTXConnection(bool doTransaction = true)
         {
             throw new NotImplementedException();
         }
 
-        protected override ValueTask<T> ExecuteInLock<T>(string lockName, Func<ConnectionAndTransactionHolder, ValueTask<T>> txCallback, CancellationToken cancellationToken = default)
+        protected override ValueTask<T> ExecuteInWriteLock<T>(
+            string lockName,
+            Func<ConnectionAndTransactionHolder, ValueTask<T>> txCallback,
+            Func<ConnectionAndTransactionHolder, T, ValueTask<bool>> txValidator = null,
+            Guid? requesterId = null,
+            CancellationToken cancellationToken = new())
         {
             throw new NotImplementedException();
         }

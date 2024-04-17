@@ -103,11 +103,17 @@ internal sealed class ServiceCollectionSchedulerFactory : StdSchedulerFactory
 
     protected override T InstantiateType<T>(Type? implementationType)
     {
-        var service = serviceProvider.GetService<T>();
-        if (service is null)
+        if (implementationType == null)
         {
-            service = ObjectUtils.InstantiateType<T>(implementationType);
+            ThrowHelper.ThrowArgumentNullException(nameof(implementationType), "Cannot instantiate null");
         }
-        return service;
+
+        object? result = serviceProvider.GetService(implementationType);
+        if (result != null)
+        {
+            return (T) result;
+        }
+
+        return ObjectUtils.InstantiateType<T>(implementationType);
     }
 }

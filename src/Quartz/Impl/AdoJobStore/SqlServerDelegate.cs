@@ -21,6 +21,11 @@
 
 using System.Data.Common;
 
+using Microsoft.Extensions.Logging;
+
+using Quartz.Logging;
+using Quartz.Spi;
+
 namespace Quartz.Impl.AdoJobStore;
 
 /// <summary>
@@ -29,6 +34,26 @@ namespace Quartz.Impl.AdoJobStore;
 /// <author>Marko Lahma</author>
 public class SqlServerDelegate : StdAdoDelegate
 {
+    public override void Initialize(IJobStore jobStore, DelegateInitializationArgs args)
+    {
+        base.Initialize(jobStore, args);
+
+        ILogger<SqlServerDelegate> logger = LogProvider.CreateLogger<SqlServerDelegate>();
+        if (jobStore is JobStoreSupport support && (support.Clustered || support.UseDBLocks))
+        {
+            const string defaultLockSql = "SELECT * FROM {0}LOCKS WITH (UPDLOCK,ROWLOCK) WHERE " + ColumnSchedulerName + " = @schedulerName AND LOCK_NAME = @lockName";
+            logger.LogInformation("Detected usage of SqlServerDelegate - defaulting 'selectWithLockSQL' to '{DefaultLockSql}'.", defaultLockSql);
+            lockHandler = new StdRowLockSemaphore(args.TablePrefix, args.InstanceName, selectWithLockSQL: null, DbProvider);
+        }
+        else
+        {
+            logger.LogInformation("Using thread monitor-based data access locking (synchronization).");
+            lockHandler = new SimpleSemaphore();
+        }
+
+        logger.LogWarning("Detected usage of SqlServerDelegate and UpdateLockRowSemaphore, removing 'quartz.jobStore.lockHandler.type' would allow more efficient SQL Server specific (UPDLOCK,ROWLOCK) row access");
+    }
+
     /// <summary>
     /// Gets the select next trigger to acquire SQL clause.
     /// SQL Server specific version with TOP functionality

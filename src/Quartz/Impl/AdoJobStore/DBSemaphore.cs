@@ -96,7 +96,7 @@ public abstract class DBSemaphore : StdAdoConstants, ISemaphore, ITablePrefixAwa
     /// until it is available).
     /// </summary>
     /// <returns>true if the lock was obtained.</returns>
-    public async ValueTask<bool> ObtainLock(
+    public async ValueTask<bool> ObtainWriteLock(
         Guid requestorId,
         ConnectionAndTransactionHolder? conn,
         string lockName,
@@ -121,21 +121,19 @@ public abstract class DBSemaphore : StdAdoConstants, ISemaphore, ITablePrefixAwa
 
             return locks.TryAdd(key, null);
         }
-        else
+
+        if (isDebugEnabled)
         {
-            if (isDebugEnabled)
-            {
-                logger.LogDebug("Lock '{LockName}' Is already owned by: {RequestorId}", lockName, requestorId);
-            }
-            return false;
+            logger.LogDebug("Lock '{LockName}' Is already owned by: {RequestorId}", lockName, requestorId);
         }
+        return false;
     }
 
     /// <summary>
     /// Release the lock on the identified resource if it is held by the calling
     /// thread.
     /// </summary>
-    public ValueTask ReleaseLock(
+    public ValueTask ReleaseWriteLock(
         Guid requestorId,
         string lockName,
         CancellationToken cancellationToken = default)
@@ -157,6 +155,16 @@ public abstract class DBSemaphore : StdAdoConstants, ISemaphore, ITablePrefixAwa
         }
 
         return default;
+    }
+
+    public ValueTask<bool> ObtainReadLock(Guid requestorId, ConnectionAndTransactionHolder? conn, string lockName, CancellationToken cancellationToken = default)
+    {
+        return new ValueTask<bool>(true);
+    }
+
+    public ValueTask ReleaseReadLock(Guid requestorId, string lockName, CancellationToken cancellationToken = default)
+    {
+        return new ValueTask();
     }
 
     /// <summary>

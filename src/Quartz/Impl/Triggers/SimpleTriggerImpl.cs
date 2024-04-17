@@ -605,17 +605,18 @@ public class SimpleTriggerImpl : AbstractTrigger, ISimpleTrigger
 
         if (cal != null)
         {
-            while (!cal.IsTimeIncluded(nextFireTimeUtc.GetValueOrDefault()))
+            DateTimeOffset? nextFireTime = nextFireTimeUtc;
+            while (!cal.IsTimeIncluded(nextFireTime.GetValueOrDefault()))
             {
-                nextFireTimeUtc = GetFireTimeAfter(nextFireTimeUtc);
+                nextFireTime = GetFireTimeAfter(nextFireTime);
 
-                if (!nextFireTimeUtc.HasValue)
+                if (!nextFireTime.HasValue)
                 {
                     break;
                 }
 
                 //avoid infinite loop
-                if (nextFireTimeUtc.GetValueOrDefault().Year > TriggerConstants.YearToGiveUpSchedulingAt)
+                if (nextFireTime.GetValueOrDefault().Year > TriggerConstants.YearToGiveUpSchedulingAt)
                 {
                     return null;
                 }

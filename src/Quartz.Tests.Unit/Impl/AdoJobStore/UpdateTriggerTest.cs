@@ -124,7 +124,7 @@ public class UpdateTriggerTest
         args.TypeLoadHelper = new SimpleTypeLoadHelper();
 
         var adoDelegate = new StdAdoDelegate();
-        adoDelegate.Initialize(args);
+        adoDelegate.Initialize(null!, args);
 
         var dbConnection = new StubConnection();
         var conn = new ConnectionAndTransactionHolder(dbConnection, null);

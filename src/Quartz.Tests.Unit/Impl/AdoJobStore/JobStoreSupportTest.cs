@@ -38,15 +38,17 @@ public class JobStoreSupportTest
 
     public class TestJobStoreSupport : JobStoreSupport
     {
-        protected override ValueTask<ConnectionAndTransactionHolder> GetNonManagedTXConnection()
+        protected override ValueTask<ConnectionAndTransactionHolder> GetNonManagedTXConnection(bool doTransaction = true)
         {
             return new ValueTask<ConnectionAndTransactionHolder>(new ConnectionAndTransactionHolder(A.Fake<DbConnection>(), null));
         }
 
-        protected override ValueTask<T> ExecuteInLock<T>(
+        protected override ValueTask<T> ExecuteInWriteLock<T>(
             string lockName,
             Func<ConnectionAndTransactionHolder, ValueTask<T>> txCallback,
-            CancellationToken cancellationToken = default)
+            Func<ConnectionAndTransactionHolder, T, ValueTask<bool>> txValidator = null,
+            Guid? requesterId = null,
+            CancellationToken cancellationToken = new())
         {
             return new ValueTask<T>(default(T));
         }

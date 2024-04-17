@@ -28,21 +28,41 @@ namespace Quartz.Impl.AdoJobStore;
 public interface ISemaphore
 {
     /// <summary>
-    /// Grants a lock on the identified resource to the calling thread (blocking
+    /// Grants a write lock on the identified resource to the calling thread (blocking
     /// until it is available).
     /// </summary>
     /// <returns> true if the lock was obtained.
     /// </returns>
-    ValueTask<bool> ObtainLock(
+    ValueTask<bool> ObtainWriteLock(
         Guid requestorId,
         ConnectionAndTransactionHolder? conn,
         string lockName,
         CancellationToken cancellationToken = default);
 
-    /// <summary> Release the lock on the identified resource if it is held by the calling
+    /// <summary>
+    /// Grants a read lock on the identified resource to the calling thread (blocking
+    /// until it is available).
+    /// </summary>
+    /// <returns> true if the lock was obtained.
+    /// </returns>
+    ValueTask<bool> ObtainReadLock(
+        Guid requestorId,
+        ConnectionAndTransactionHolder? conn,
+        string lockName,
+        CancellationToken cancellationToken = default);
+
+    /// <summary> Release the write lock on the identified resource if it is held by the calling
     /// thread.
     /// </summary>
-    ValueTask ReleaseLock(
+    ValueTask ReleaseWriteLock(
+        Guid requestorId,
+        string lockName,
+        CancellationToken cancellationToken = default);
+
+    /// <summary> Release the read lock on the identified resource if it is held by the calling
+    /// thread.
+    /// </summary>
+    ValueTask ReleaseReadLock(
         Guid requestorId,
         string lockName,
         CancellationToken cancellationToken = default);
@@ -51,7 +71,7 @@ public interface ISemaphore
     /// Whether this Semaphore implementation requires a database connection for
     /// its lock management operations.
     /// </summary>
-    /// <seealso cref="ObtainLock" />
-    /// <seealso cref="ReleaseLock" />
+    /// <seealso cref="ObtainWriteLock" />
+    /// <seealso cref="ReleaseWriteLock" />
     bool RequiresConnection { get; }
 }

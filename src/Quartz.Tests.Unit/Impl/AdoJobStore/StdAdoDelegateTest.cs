@@ -64,7 +64,7 @@ public class StdAdoDelegateTest
         args.ObjectSerializer = serializer;
 
         var del = new StdAdoDelegate();
-        del.Initialize(args);
+        del.Initialize(null!, args);
 
         var jdm = new JobDataMap();
         del.SerializeJobData(jdm);
@@ -143,7 +143,7 @@ public class StdAdoDelegateTest
             InitString = "",
             DbProvider = dbProvider
         };
-        adoDelegate.Initialize(delegateInitializationArgs);
+        adoDelegate.Initialize(null!, delegateInitializationArgs);
 
         var conn = new ConnectionAndTransactionHolder(connection, transaction);
 
@@ -200,7 +200,7 @@ public class StdAdoDelegateTest
             InitString = "",
             DbProvider = dbProvider
         };
-        adoDelegate.Initialize(delegateInitializationArgs);
+        adoDelegate.Initialize(null!, delegateInitializationArgs);
 
         // Mock basic trigger data
         A.CallTo(() => dataReader.ReadAsync(CancellationToken.None)).Returns(true);
@@ -285,7 +285,7 @@ public class StdAdoDelegateTest
         };
 
         var adoDelegate = new StdAdoDelegate();
-        adoDelegate.Initialize(delegateInitializationArgs);
+        adoDelegate.Initialize(null!, delegateInitializationArgs);
 
         var jobKey = new JobKey(jobName, jobGroup);
 
@@ -370,7 +370,7 @@ public class StdAdoDelegateTest
             InitString = "",
             DbProvider = dbProvider
         };
-        adoDelegate.Initialize(delegateInitializationArgs);
+        adoDelegate.Initialize(null!, delegateInitializationArgs);
 
         // First result set has results, second has none
         A.CallTo(() => dataReader.ReadAsync(CancellationToken.None)).Returns(true).Once();
@@ -399,7 +399,7 @@ public class StdAdoDelegateTest
             InitString = "triggerPersistenceDelegateClasses=" + typeof(TestTriggerPersistenceDelegate).AssemblyQualifiedName + ";" + typeof(TestTriggerPersistenceDelegate).AssemblyQualifiedName,
             DbProvider = A.Fake<IDbProvider>()
         };
-        adoDelegate.Initialize(delegateInitializationArgs);
+        adoDelegate.Initialize(null!, delegateInitializationArgs);
     }
 
     private class TestStdAdoDelegate : StdAdoDelegate

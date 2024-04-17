@@ -34,7 +34,7 @@ public class JobStoreTX : JobStoreSupport
 {
     /// <summary>
     /// Called by the QuartzScheduler before the <see cref="IJobStore"/> is
-    /// used, in order to give the it a chance to Initialize.
+    /// used, in order to give it a chance to Initialize.
     /// </summary>
     public override async ValueTask Initialize(
         ITypeLoadHelper loadHelper,
@@ -49,34 +49,9 @@ public class JobStoreTX : JobStoreSupport
     /// For <see cref="JobStoreTX" />, the non-managed TX connection is just
     /// the normal connection because it is not CMT.
     /// </summary>
-    /// <seealso cref="JobStoreSupport.GetConnection()" />
-    protected override ValueTask<ConnectionAndTransactionHolder> GetNonManagedTXConnection()
+    /// <seealso cref="JobStoreSupport.GetConnection(bool)" />
+    protected override ValueTask<ConnectionAndTransactionHolder> GetNonManagedTXConnection(bool doTransaction = true)
     {
-        return GetConnection();
-    }
-
-    /// <summary>
-    /// Execute the given callback having optionally acquired the given lock.
-    /// For <see cref="JobStoreTX" />, because it manages its own transactions
-    /// and only has the one datasource, this is the same behavior as
-    /// <see cref="JobStoreSupport.ExecuteInNonManagedTXLock" />.
-    /// </summary>
-    /// <param name="lockName">
-    /// The name of the lock to acquire, for example "TRIGGER_ACCESS".
-    /// If null, then no lock is acquired, but the lockCallback is still
-    /// executed in a transaction.
-    /// </param>
-    /// <param name="txCallback">Callback to execute.</param>
-    /// <param name="cancellationToken">The cancellation instruction.</param>
-    /// <returns></returns>
-    /// <seealso cref="JobStoreSupport.ExecuteInNonManagedTXLock" />
-    /// <seealso cref="JobStoreSupport.GetNonManagedTXConnection()" />
-    /// <seealso cref="JobStoreSupport.GetConnection()" />
-    protected override ValueTask<T> ExecuteInLock<T>(
-        string? lockName,
-        Func<ConnectionAndTransactionHolder, ValueTask<T>> txCallback,
-        CancellationToken cancellationToken = default)
-    {
-        return ExecuteInNonManagedTXLock(lockName, txCallback, cancellationToken);
+        return GetConnection(doTransaction);
     }
 }

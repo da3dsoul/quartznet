@@ -17,6 +17,11 @@
 
 using System.Data;
 
+using Microsoft.Extensions.Logging;
+
+using Quartz.Logging;
+using Quartz.Spi;
+
 namespace Quartz.Impl.AdoJobStore;
 
 /// <summary>
@@ -28,6 +33,41 @@ public class SQLiteDelegate : StdAdoDelegate
 #if NETSTANDARD2_0
     private System.Reflection.MethodInfo? getFieldValueMethod;
 #endif
+
+    public override ISemaphore LockHandler
+    {
+        get
+        {
+            lockHandler ??= new ReaderWriterLockSemaphore();
+            return lockHandler;
+        }
+    }
+
+    public override void Initialize(IJobStore jobStore, DelegateInitializationArgs args)
+    {
+        base.Initialize(jobStore, args);
+
+        if (jobStore.Clustered)
+        {
+            ThrowHelper.ThrowInvalidConfigurationException("SQLite cannot be used as clustered mode due to locking problems");
+        }
+
+        if (jobStore is JobStoreSupport support)
+        {
+            ILogger<SQLiteDelegate> logger = LogProvider.CreateLogger<SQLiteDelegate>();
+            if (!support.AcquireTriggersWithinLock)
+            {
+                logger.LogInformation("With SQLite we need to set AcquireTriggersWithinLock to true, changing");
+                support.AcquireTriggersWithinLock = true;
+            }
+
+            if (!support.TxIsolationLevelSerializable)
+            {
+                logger.LogInformation("Detected usage of SQLiteDelegate - defaulting 'txIsolationLevelSerializable' to 'true'");
+                support.TxIsolationLevelSerializable = true;
+            }
+        }
+    }
 
     /// <summary>
     /// Gets the select next trigger to acquire SQL clause.

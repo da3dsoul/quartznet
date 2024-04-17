@@ -90,7 +90,7 @@ public class JobStoreCMT : JobStoreSupport
     /// Gets the non managed TX connection.
     /// </summary>
     /// <returns></returns>
-    protected override async ValueTask<ConnectionAndTransactionHolder> GetNonManagedTXConnection()
+    protected override async ValueTask<ConnectionAndTransactionHolder> GetNonManagedTXConnection(bool doTransaction = true)
     {
         DbConnection conn;
         try
@@ -116,20 +116,24 @@ public class JobStoreCMT : JobStoreSupport
     /// transaction, it does not attempt to commit or rollback the
     /// enclosing transaction.
     /// </summary>
-    /// <seealso cref="JobStoreSupport.ExecuteInNonManagedTXLock" />
-    /// <seealso cref="JobStoreSupport.ExecuteInLock" />
-    /// <seealso cref="JobStoreSupport.GetNonManagedTXConnection()" />
-    /// <seealso cref="JobStoreSupport.GetConnection()" />
+    /// <seealso cref="JobStoreSupport.ExecuteInWriteLock" />
+    /// <seealso cref="JobStoreSupport.ExecuteInWriteLock" />
+    /// <seealso cref="JobStoreSupport.GetNonManagedTXConnection(bool)" />
+    /// <seealso cref="JobStoreSupport.GetConnection(bool)" />
     /// <param name="lockName">
     /// The name of the lock to acquire, for example
     /// "TRIGGER_ACCESS".  If null, then no lock is acquired, but the
     /// txCallback is still executed in a transaction.
     /// </param>
     /// <param name="txCallback">Callback to execute.</param>
+    /// <param name="txValidator"></param>
+    /// <param name="requesterId"></param>
     /// <param name="cancellationToken">The cancellation instruction.</param>
-    protected override async ValueTask<T> ExecuteInLock<T>(
+    protected override async ValueTask<T> ExecuteInWriteLock<T>(
         string? lockName,
         Func<ConnectionAndTransactionHolder, ValueTask<T>> txCallback,
+        Func<ConnectionAndTransactionHolder, T, ValueTask<bool>>? txValidator = null,
+        Guid? requesterId = null,
         CancellationToken cancellationToken = default)
     {
         bool transOwner = false;
@@ -146,7 +150,7 @@ public class JobStoreCMT : JobStoreSupport
                     conn = await GetNonManagedTXConnection().ConfigureAwait(false);
                 }
 
-                transOwner = await LockHandler.ObtainLock(requestorId, conn!, lockName, cancellationToken).ConfigureAwait(false);
+                transOwner = await LockHandler.ObtainWriteLock(requestorId, conn!, lockName, cancellationToken).ConfigureAwait(false);
             }
 
             if (conn == null)
@@ -160,7 +164,7 @@ public class JobStoreCMT : JobStoreSupport
         {
             try
             {
-                await ReleaseLock(requestorId, lockName!, transOwner, cancellationToken).ConfigureAwait(false);
+                await ReleaseLock(requestorId, lockName!, true, transOwner, cancellationToken).ConfigureAwait(false);
             }
             finally
             {
