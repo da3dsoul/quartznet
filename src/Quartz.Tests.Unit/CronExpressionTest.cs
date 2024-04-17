@@ -20,6 +20,7 @@
 #endregion
 
 using System.Diagnostics;
+using System.Text;
 
 using FluentAssertions;
 
@@ -963,20 +964,20 @@ public class CronExpressionTest : SerializationTestSupport<CronExpression>
     {
         CronExpression expression = new CronExpression("0 15 15 5 11 ?");
         var sut = expression.GetExpressionSummary();
-        sut.Should().Be(
-            @"seconds: 0
-minutes: 15
-hours: 15
-daysOfMonth: 5
-months: 11
-daysOfWeek: ?
-lastdayOfWeek: False
-nearestWeekday: False
-NthDayOfWeek: 0
-lastdayOfMonth: False
-calendardayOfWeek: False
-calendardayOfMonth: False
-years: *
-");
+        StringBuilder expected = new StringBuilder();
+        expected.AppendLine("seconds: 0");
+        expected.AppendLine("minutes: 15");
+        expected.AppendLine("hours: 15");
+        expected.AppendLine("daysOfMonth: 5");
+        expected.AppendLine("months: 11");
+        expected.AppendLine("daysOfWeek: ?");
+        expected.AppendLine("lastdayOfWeek: False");
+        expected.AppendLine("nearestWeekday: False");
+        expected.AppendLine("NthDayOfWeek: 0");
+        expected.AppendLine("lastdayOfMonth: False");
+        expected.AppendLine("calendardayOfWeek: False");
+        expected.AppendLine("calendardayOfMonth: False");
+        expected.AppendLine("years: *");
+        sut.Should().Be(expected.ToString());
     }
 }

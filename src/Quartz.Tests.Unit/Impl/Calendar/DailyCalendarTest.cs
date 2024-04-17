@@ -94,8 +94,15 @@ public class DailyCalendarTest : SerializationTestSupport<DailyCalendar, ICalend
         Assert.IsTrue(dailyCalendar.IsTimeIncluded(timeToCheck));
     }
 
-    [Test]
-    public void TestTimeZone2()
+    private static readonly object[] StartTimes = Enumerable.Range(0, 24)
+        .SelectMany(a => Enumerable.Range(-12, 24).Select(b => new object[] {
+            new DateTimeOffset(new DateTime(2024, 01, 02).AddHours(a),
+                TimeSpan.FromHours(b)), TimeSpan.FromHours(b)
+        }))
+        .Cast<object>().ToArray();
+
+    [TestCaseSource(nameof(StartTimes))]
+    public void TestTimeZone2(DateTimeOffset startTime, TimeSpan timeZoneOffset)
     {
         DailyCalendar dailyCalendar = new DailyCalendar("00:00:00", "04:00:00");
         dailyCalendar.TimeZone = TimeZoneInfo.Utc;
@@ -103,15 +110,13 @@ public class DailyCalendarTest : SerializationTestSupport<DailyCalendar, ICalend
         var trigger = (IOperableTrigger)TriggerBuilder
             .Create()
             .WithIdentity("TestTimeZone2Trigger")
-            .StartAt(DateBuilder.EvenMinuteDateAfterNow())
+            .StartAt(startTime)
             .WithSimpleSchedule(s => s
                 .WithIntervalInMinutes(1)
                 .RepeatForever())
             .Build();
 
         var fireTimes = TriggerUtils.ComputeFireTimes(trigger, dailyCalendar, (int)TimeSpan.FromDays(1).TotalMinutes);
-
-        var timeZoneOffset = TimeZoneInfo.Local.BaseUtcOffset;
 
         // Trigger need to fire during the period when the local timezone and utc timezone are on different day
         if (timeZoneOffset > TimeSpan.Zero)
