@@ -802,7 +802,7 @@ public abstract class JobStoreSupport : AdoConstants, IJobStore
     /// <param name="newJob">Job to be stored.</param>
     /// <param name="newTrigger">Trigger to be stored.</param>
     /// <param name="cancellationToken">The cancellation instruction.</param>
-    public async ValueTask StoreJobAndTrigger(
+    public virtual async ValueTask StoreJobAndTrigger(
         IJobDetail newJob,
         IOperableTrigger newTrigger,
         CancellationToken cancellationToken = default)
@@ -858,7 +858,7 @@ public abstract class JobStoreSupport : AdoConstants, IJobStore
     /// <see cref="IJobStore" /> with the same name &amp; group should be over-written.
     /// </param>
     /// <param name="cancellationToken">The cancellation instruction.</param>
-    public async ValueTask<object> StoreJob(
+    public virtual async ValueTask<object> StoreJob(
         IJobDetail newJob,
         bool replaceExisting,
         CancellationToken cancellationToken = default)
@@ -943,7 +943,7 @@ public abstract class JobStoreSupport : AdoConstants, IJobStore
     /// if a <see cref="ITrigger" /> with the same name/group already
     /// exists, and replaceExisting is set to false.
     /// </exception>
-    public async ValueTask<object> StoreTrigger(
+    public virtual async ValueTask<object> StoreTrigger(
         IOperableTrigger newTrigger,
         bool replaceExisting,
         CancellationToken cancellationToken = default)
@@ -1132,7 +1132,7 @@ public abstract class JobStoreSupport : AdoConstants, IJobStore
             }, cancellationToken: cancellationToken);
     }
 
-    public async ValueTask<object> StoreJobsAndTriggers(
+    public virtual async ValueTask<object> StoreJobsAndTriggers(
         IReadOnlyDictionary<IJobDetail, IReadOnlyCollection<ITrigger>> triggersAndJobs,
         bool replace,
         CancellationToken cancellationToken = default)
