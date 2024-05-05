@@ -53,20 +53,25 @@ public static class ObjectUtils
             }
 
             // try to convert using type converter
-            TypeConverter typeConverter = TypeDescriptor.GetConverter(requiredType);
-            if (typeConverter.CanConvertFrom(newValue.GetType()))
+            if (TryConvertType(requiredType, newValue, out object? convertFrom))
             {
-                return typeConverter.ConvertFrom(null, CultureInfo.InvariantCulture, newValue);
+                return convertFrom;
             }
-            typeConverter = TypeDescriptor.GetConverter(newValue.GetType());
-            if (typeConverter.CanConvertTo(requiredType))
+
+            if (requiredType.IsGenericType && requiredType.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
-                return typeConverter.ConvertTo(null, CultureInfo.InvariantCulture, newValue, requiredType);
+                Type innerType = requiredType.GetGenericArguments()[0];
+                if (TryConvertType(innerType, newValue, out convertFrom))
+                {
+                    return convertFrom;
+                }
             }
+
             if (requiredType == typeof(Type))
             {
                 return Type.GetType(newValue.ToString()!, true);
             }
+
             if (newValue.GetType().IsEnum)
             {
                 // If we couldn't convert the type, but it's an enum type, try convert it as an int
@@ -85,7 +90,7 @@ public static class ObjectUtils
                 }
             }
 
-            ThrowHelper.ThrowNotSupportedException($"{newValue} is no a supported value for a target of type {requiredType}");
+            ThrowHelper.ThrowNotSupportedException($"{newValue} is not a supported value for a target of type {requiredType}");
         }
 
         if (requiredType.IsValueType)
@@ -97,6 +102,41 @@ public static class ObjectUtils
         return null;
     }
 
+    private static bool TryConvertType(Type requiredType, object newValue, out object? result)
+    {
+        TypeConverter typeConverter = TypeDescriptor.GetConverter(requiredType);
+        if (typeConverter.CanConvertFrom(newValue.GetType()))
+        {
+            {
+                result = typeConverter.ConvertFrom(null, CultureInfo.InvariantCulture, newValue);
+                return true;
+            }
+        }
+
+        typeConverter = TypeDescriptor.GetConverter(newValue.GetType());
+        if (typeConverter.CanConvertTo(requiredType))
+        {
+            {
+                result = typeConverter.ConvertTo(null, CultureInfo.InvariantCulture, newValue, requiredType);
+                return true;
+            }
+        }
+
+        if ((requiredType == typeof(DateTime) || requiredType == typeof(DateTime?)) && newValue is DateTimeOffset offset)
+        {
+            result = offset.DateTime;
+            return true;
+        }
+
+        if ((requiredType == typeof(DateTimeOffset) || requiredType == typeof(DateTimeOffset?)) && newValue is DateTime dateTime)
+        {
+            result = new DateTimeOffset(dateTime);
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
 
     /// <summary>
     /// Instantiates an instance of the type specified.

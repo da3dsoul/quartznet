@@ -61,6 +61,10 @@ public class PropertySettingJobFactoryTest
         jobDataMap.Put("enumValue1", DayOfWeek.Monday);
         jobDataMap.Put("enumValue2", 1);
         jobDataMap.Put("enumValue3", "Monday");
+        jobDataMap.Put("dateTimeValue", new DateTime(2024, 1, 2));
+        jobDataMap.Put("dateTimeOffsetValue", new DateTimeOffset(new DateTime(2024, 1, 2), TimeSpan.Zero));
+        jobDataMap.Put("nullableDateTimeValue", (DateTime?)new DateTime(2024, 1, 2));
+        jobDataMap.Put("nullableDateTimeOffsetValue", (DateTimeOffset?)new DateTimeOffset(new DateTime(2024, 1, 2), TimeSpan.Zero));
 
         var map = new Dictionary<string, string>();
         map.Add("A", "B");
@@ -90,6 +94,10 @@ public class PropertySettingJobFactoryTest
         Assert.AreEqual(DayOfWeek.Monday, myObject.EnumValue2);
         Assert.AreEqual(DayOfWeek.Monday, myObject.EnumValue3);
         Assert.IsTrue(myObject.MapValue.ContainsKey("A"));
+        Assert.AreEqual(new DateTime(2024, 1, 2), myObject.DateTimeValue);
+        Assert.AreEqual(new DateTimeOffset(new DateTime(2024, 1, 2), TimeSpan.Zero), myObject.DateTimeOffsetValue);
+        Assert.AreEqual(new DateTime(2024, 1, 2), myObject.NullableDateTimeValue);
+        Assert.AreEqual(new DateTimeOffset(new DateTime(2024, 1, 2), TimeSpan.Zero), myObject.NullableDateTimeOffsetValue);
     }
 
     [Test]
@@ -207,6 +215,10 @@ public class PropertySettingJobFactoryTest
         jobDataMap.Put("shortValue", "5");
         jobDataMap.Put("charValue", "a");
         jobDataMap.Put("byteValue", "6");
+        jobDataMap.Put("dateTimeValue", "2024-01-02T00:00:00Z");
+        jobDataMap.Put("dateTimeOffsetValue", "2024-01-02T00:00:00Z");
+        jobDataMap.Put("nullableDateTimeValue", "2024-01-02T00:00:00Z");
+        jobDataMap.Put("nullableDateTimeOffsetValue", "2024-01-02T00:00:00Z");
 
         TestObject myObject = new TestObject();
         factory.SetObjectProperties(myObject, jobDataMap);
@@ -219,6 +231,10 @@ public class PropertySettingJobFactoryTest
         Assert.AreEqual(5, myObject.ShortValue);
         Assert.AreEqual('a', myObject.CharValue);
         Assert.AreEqual((byte) 6, myObject.ByteValue);
+        Assert.AreEqual(new DateTime(2024, 1, 2, 0, 0, 0, DateTimeKind.Utc).ToLocalTime(), myObject.DateTimeValue);
+        Assert.AreEqual(new DateTimeOffset(new DateTime(2024, 1, 2), TimeSpan.Zero), myObject.DateTimeOffsetValue);
+        Assert.AreEqual(new DateTime(2024, 1, 2, 0, 0, 0, DateTimeKind.Utc).ToLocalTime(), myObject.NullableDateTimeValue);
+        Assert.AreEqual(new DateTimeOffset(new DateTime(2024, 1, 2), TimeSpan.Zero), myObject.NullableDateTimeOffsetValue);
     }
 
     internal sealed class TestObject
@@ -232,6 +248,14 @@ public class PropertySettingJobFactoryTest
         public int IntValue { set; get; }
 
         public long LongValue { set; get; }
+
+        public DateTime? NullableDateTimeValue { get; set; }
+
+        public DateTimeOffset? NullableDateTimeOffsetValue { get; set; }
+
+        public DateTime DateTimeValue { get; set; }
+
+        public DateTimeOffset DateTimeOffsetValue { get; set; }
 
         public Dictionary<string, string> MapValue { set; get; }
 
