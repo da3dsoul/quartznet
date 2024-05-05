@@ -215,10 +215,10 @@ public class PropertySettingJobFactoryTest
         jobDataMap.Put("shortValue", "5");
         jobDataMap.Put("charValue", "a");
         jobDataMap.Put("byteValue", "6");
-        jobDataMap.Put("dateTimeValue", "2024-01-02T00:00:00Z");
-        jobDataMap.Put("dateTimeOffsetValue", "2024-01-02T00:00:00Z");
-        jobDataMap.Put("nullableDateTimeValue", "2024-01-02T00:00:00Z");
-        jobDataMap.Put("nullableDateTimeOffsetValue", "2024-01-02T00:00:00Z");
+        jobDataMap.Put("dateTimeValue", "2024-01-02T00:00:00-05:00");
+        jobDataMap.Put("dateTimeOffsetValue", "2024-01-02T00:00:00-05:00");
+        jobDataMap.Put("nullableDateTimeValue", "2024-01-02T00:00:00-05:00");
+        jobDataMap.Put("nullableDateTimeOffsetValue", "2024-01-02T00:00:00-05:00");
 
         TestObject myObject = new TestObject();
         factory.SetObjectProperties(myObject, jobDataMap);
@@ -231,10 +231,10 @@ public class PropertySettingJobFactoryTest
         Assert.AreEqual(5, myObject.ShortValue);
         Assert.AreEqual('a', myObject.CharValue);
         Assert.AreEqual((byte) 6, myObject.ByteValue);
-        Assert.AreEqual(new DateTime(2024, 1, 2, 0, 0, 0, DateTimeKind.Utc).ToLocalTime(), myObject.DateTimeValue);
-        Assert.AreEqual(new DateTimeOffset(new DateTime(2024, 1, 2), TimeSpan.Zero), myObject.DateTimeOffsetValue);
-        Assert.AreEqual(new DateTime(2024, 1, 2, 0, 0, 0, DateTimeKind.Utc).ToLocalTime(), myObject.NullableDateTimeValue);
-        Assert.AreEqual(new DateTimeOffset(new DateTime(2024, 1, 2), TimeSpan.Zero), myObject.NullableDateTimeOffsetValue);
+        Assert.AreEqual(new DateTime(2024, 1, 2), myObject.DateTimeValue);
+        Assert.AreEqual(new DateTimeOffset(new DateTime(2024, 1, 2), TimeSpan.FromHours(-5)), myObject.DateTimeOffsetValue);
+        Assert.AreEqual(new DateTime(2024, 1, 2), myObject.NullableDateTimeValue);
+        Assert.AreEqual(new DateTimeOffset(new DateTime(2024, 1, 2), TimeSpan.FromHours(-5)), myObject.NullableDateTimeOffsetValue);
     }
 
     internal sealed class TestObject
